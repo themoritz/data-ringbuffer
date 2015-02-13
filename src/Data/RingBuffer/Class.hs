@@ -7,7 +7,11 @@ import           Data.RingBuffer.Types
 
 
 class RingBuffer a where
-    newRingBuffer :: Int -> b -> IO (a b)
+    newRingBuffer :: Int
+                  -- ^ buffer size
+                  -> b
+                  -- ^ initial element
+                  -> IO (a b)
 
     consumeFrom :: a b
                 -> Int
