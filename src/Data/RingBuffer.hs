@@ -35,14 +35,13 @@ import           Data.RingBuffer.Types
 newSequencer :: [Consumer a] -> IO Sequencer
 newSequencer conss = do
     curs <- mkSeq
-
     return $! Sequencer curs (map gate conss)
 
-    where
-        gate (Consumer _ sq) = sq
+gate :: Consumer a -> Sequence
+gate (Consumer _ sq) = sq
 
-newBarrier :: Sequencer -> [Sequence] -> Barrier
-newBarrier (Sequencer curs _) = Barrier curs
+newBarrier :: Sequencer -> [Consumer a] -> Barrier
+newBarrier (Sequencer curs _) conss = Barrier curs $ map gate conss
 
 newConsumer :: (a -> IO ()) -> IO (Consumer a)
 newConsumer fn = do
