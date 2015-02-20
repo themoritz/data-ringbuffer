@@ -56,7 +56,7 @@ consumeFrom (MVector mvec) modm barr (Consumer fn sq) = do
     avail <- waitFor barr next
 
     let start = next .&. modm
-        len   = avail - next
+        len   = avail - next + 1
         (_,t) = MV.splitAt start mvec
         tlen  = MV.length t
 
