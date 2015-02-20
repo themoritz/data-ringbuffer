@@ -15,13 +15,13 @@ import           Data.RingBuffer.Types
 
 
 minSeq :: [Sequence] -> IO Int
-minSeq ss = fromIntegral . minimum <$> mapM readSeq ss
+minSeq ss = (\x -> x-1) . fromIntegral . minimum <$> mapM readSeq ss
 {-# INLINE minSeq #-}
 
 await :: [Sequence] -> Int -> Int -> IO Int
 await gates n bufsize = do
     m <- minSeq gates
-    if (n - bufsize < m) then return n else await gates n bufsize
+    if (n - bufsize <= m) then return n else await gates n bufsize
 {-# INLINE await #-}
 
 
