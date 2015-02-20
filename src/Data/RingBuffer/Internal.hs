@@ -21,7 +21,7 @@ minSeq ss = fromIntegral . minimum <$> mapM readSeq ss
 await :: [Sequence] -> Int -> Int -> IO Int
 await gates n bufsize = do
     m <- minSeq gates
-    if (n - bufsize <= m) then return n else await gates n bufsize
+    if (n - bufsize < m) then return n else await gates n bufsize
 {-# INLINE await #-}
 
 
