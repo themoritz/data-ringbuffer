@@ -2,12 +2,14 @@ module Data.RingBuffer
     ( -- * Types
       Barrier
     , Consumer
+    , Transformer
     , Sequence
     , Sequencer
 
     -- * Value Constructors
     , newSequencer
     , newConsumer
+    , newTransformer
     , newBarrier
 
     -- * Concurrent Access, aka Disruptor API
@@ -19,6 +21,7 @@ module Data.RingBuffer
 
     -- * Util
     , consumerSeq
+    , transformerSeq
     )
 where
 
@@ -32,22 +35,29 @@ import           Data.RingBuffer.Types
 -- Value Constructors
 --
 
-newSequencer :: [Consumer a] -> IO Sequencer
+type ConsOrTrans a b = Either (Consumer a) (Transformer a b)
+
+newSequencer :: [ConsOrTrans a b] -> IO Sequencer
 newSequencer conss = do
     curs <- mkSeq
     return $! Sequencer curs (map gate conss)
 
-gate :: Consumer a -> Sequence
-gate (Consumer _ sq) = sq
+gate :: ConsOrTrans a b -> Sequence
+gate (Left (Consumer _ sq)) = sq
+gate (Right (Transformer _ sq)) = sq
 
-newBarrier :: Sequencer -> [Consumer a] -> Barrier
+newBarrier :: Sequencer -> [ConsOrTrans a b] -> Barrier
 newBarrier (Sequencer curs _) conss = Barrier curs $ map gate conss
 
 newConsumer :: (a -> IO ()) -> IO (Consumer a)
 newConsumer fn = do
     sq <- mkSeq
-
     return $! Consumer fn sq
+
+newTransformer :: (a -> IO b) -> IO (Transformer a b)
+newTransformer fn = do
+    sq <- mkSeq
+    return $! Transformer fn sq
 
 --
 -- Disruptor API
@@ -117,5 +127,8 @@ consumerSeq :: Consumer a -> IO Int
 consumerSeq (Consumer _ sq) = readSeq sq
 {-# INLINE consumerSeq #-}
 
+transformerSeq :: Transformer a b -> IO Int
+transformerSeq (Transformer _ sq) = readSeq sq
+{-# INLINE transformerSeq #-}
 
 -- vim: set ts=4 sw=4 et:

@@ -2,6 +2,7 @@ module Data.RingBuffer.Vector
     ( MVector(..)
     , newRingBuffer
     , consumeFrom
+    , transform
     , publishTo
     , batchPublishTo
     , concPublishTo
@@ -9,9 +10,9 @@ module Data.RingBuffer.Vector
     )
 where
 
-import           Control.Monad                     (unless)
+import           Control.Monad                     (unless, void)
 import           Data.Bits
-import           Data.Vector.Generic.Mutable       (mstream)
+import           Data.Vector.Generic.Mutable       (mstream, fill)
 import qualified Data.Vector.Mutable               as MV
 import qualified Data.Vector.Fusion.Stream.Monadic as S
 
@@ -26,6 +27,7 @@ newtype MVector a = MVector (MV.IOVector a)
 instance C.RingBuffer MVector where
     newRingBuffer      = newRingBuffer
     consumeFrom        = consumeFrom
+    transform          = transform
     publishTo          = publishTo
     batchPublishTo     = batchPublishTo
     concPublishTo      = concPublishTo
@@ -66,6 +68,26 @@ consumeFrom (MVector mvec) modm barr (Consumer fn sq) = do
 
     writeSeq sq avail
 {-# INLINE consumeFrom #-}
+
+-- Both vectors must have same length!
+transform :: MVector a -> MVector b
+          -> Int -> Barrier -> Transformer a b -> IO ()
+transform (MVector src) (MVector dst) modm barr (Transformer fn sq) = do
+    next  <- addAndGet sq 1
+    avail <- waitFor barr next
+
+    let start = next .&. modm
+        len   = avail - next + 1
+        (_,tSrc) = MV.splitAt start src
+        (_,tDst) = MV.splitAt start dst
+        tlen  = MV.length tSrc
+
+    fill tDst $ (S.mapM fn) . mstream $ MV.take len tSrc
+    unless (tlen >= len) $ void $
+        fill dst $ (S.mapM fn) . mstream $ MV.take (len - tlen) src
+
+    writeSeq sq avail
+{-# INLINE transform#-}
 
 publishTo :: MVector a -> Int -> Sequencer -> Int -> a -> IO ()
 publishTo (MVector mvec) modm seqr i v = do

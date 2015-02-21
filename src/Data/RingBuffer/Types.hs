@@ -4,6 +4,7 @@ module Data.RingBuffer.Types
     , Consumer(..)
     , Sequence(..)
     , Sequencer(..)
+    , Transformer(..)
     )
 where
 
@@ -29,5 +30,6 @@ data Consumer a = Consumer (a -> IO ())
                            !Sequence
                            -- ^ consumer sequence
 
+data Transformer a b = Transformer (a -> IO b) !Sequence
 
 -- vim: set ts=4 sw=4 et:

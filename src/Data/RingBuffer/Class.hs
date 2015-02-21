@@ -20,6 +20,13 @@ class RingBuffer a where
                 -> Consumer b
                 -> IO ()
 
+    transform :: a b
+              -> a c
+              -> Int
+              -> Barrier
+              -> Transformer b c
+              -> IO ()
+
     publishTo :: a b
               -> Int
               -- ^ mod mask
